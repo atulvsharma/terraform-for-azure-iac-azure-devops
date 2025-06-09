@@ -29,7 +29,7 @@ jobs:
       - name: Determine environment
         id: env
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ ! -z "${{ github.event.inputs.environment }}" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.environment }}" ]; then
             echo "TF_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
           else
             case "${{ github.ref }}" in
@@ -37,7 +37,7 @@ jobs:
                 echo "TF_ENV=dev" >> $GITHUB_ENV ;;
               refs/heads/destroy-qa)
                 echo "TF_ENV=qa" >> $GITHUB_ENV ;;
-              refs/heads/destroy-main|refs/heads/destroy-master)
+              refs/heads/destroy-main | refs/heads/destroy-master)
                 echo "TF_ENV=prod" >> $GITHUB_ENV ;;
               *)
                 echo "TF_ENV=dev" >> $GITHUB_ENV ;;
@@ -45,7 +45,7 @@ jobs:
           fi
 
       - name: Show selected environment
-        run: echo "Destroying for environment: $TF_ENV"
+        run: echo "Destroying for environment: ${{ env.TF_ENV }}"
 
       - name: Load environment vars
         run: |
@@ -54,16 +54,21 @@ jobs:
 
       - name: Terraform Init with Backend Config
         run: |
+          echo "Initializing Terraform with backend config"
           terraform -chdir=terraform init \
-            -backend-config="resource_group_name=${BACKEND_RG}" \
-            -backend-config="storage_account_name=${BACKEND_STORAGE}" \
-            -backend-config="container_name=${CONTAINER_NAME}" \
+            -backend-config="resource_group_name=$BACKEND_RG" \
+            -backend-config="storage_account_name=$BACKEND_STORAGE" \
+            -backend-config="container_name=$CONTAINER_NAME" \
             -backend-config="key=${TF_ENV}.tfstate"
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          BACKEND_RG: ${{ env.BACKEND_RG }}
+          BACKEND_STORAGE: ${{ env.BACKEND_STORAGE }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          TF_ENV: ${{ env.TF_ENV }}
 
       - name: Run Terraform Destroy
         run: terraform -chdir=terraform destroy -var-file="${TF_ENV}.tfvars" -auto-approve
@@ -72,3 +77,4 @@ jobs:
           ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          TF_ENV: ${{ env.TF_ENV }}
