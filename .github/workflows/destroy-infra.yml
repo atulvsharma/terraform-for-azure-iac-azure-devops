@@ -17,15 +17,6 @@ jobs:
   destroy:
     runs-on: ubuntu-latest
 
-    env:
-      TF_ENV: ${{ github.event.inputs.environment || (
-        github.ref == 'refs/heads/destroy-dev' && 'dev' ||
-        github.ref == 'refs/heads/destroy-qa' && 'qa' ||
-        github.ref == 'refs/heads/destroy-main' && 'prod' ||
-        github.ref == 'refs/heads/destroy-master' && 'prod' ||
-        'dev'
-      ) }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -34,6 +25,24 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ ! -z "${{ github.event.inputs.environment }}" ]; then
+            echo "TF_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          else
+            case "${{ github.ref }}" in
+              refs/heads/destroy-dev)
+                echo "TF_ENV=dev" >> $GITHUB_ENV ;;
+              refs/heads/destroy-qa)
+                echo "TF_ENV=qa" >> $GITHUB_ENV ;;
+              refs/heads/destroy-main|refs/heads/destroy-master)
+                echo "TF_ENV=prod" >> $GITHUB_ENV ;;
+              *)
+                echo "TF_ENV=dev" >> $GITHUB_ENV ;;
+            esac
+          fi
 
       - name: Show selected environment
         run: echo "Destroying for environment: $TF_ENV"
