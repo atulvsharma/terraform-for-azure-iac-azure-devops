@@ -2,7 +2,7 @@
 variable "web_linuxvm_size" {
   description = "Web Linux VM Size"
   type = string 
-  default = "Standard_DS1_v2"
+  default = "Standard_B1s"
 }
 
 variable "web_linuxvm_admin_user" {

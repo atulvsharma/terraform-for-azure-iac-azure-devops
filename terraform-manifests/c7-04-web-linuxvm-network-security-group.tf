@@ -1,4 +1,3 @@
-/*
 # Resource-3 (Optional): Create Network Security Group and Associate to Linux VM Network Interface
 # Resource-1: Create Network Security Group (NSG)
 resource "azurerm_network_security_group" "web_vmnic_nsg" {
@@ -38,7 +37,7 @@ resource "azurerm_network_security_rule" "web_vmnic_nsg_rule_inbound" {
   resource_group_name         = azurerm_resource_group.rg.name
   network_security_group_name = azurerm_network_security_group.web_vmnic_nsg.name
 }
-*/
+
 
 
 

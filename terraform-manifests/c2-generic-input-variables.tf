@@ -9,7 +9,7 @@ variable "business_divsion" {
 variable "environment" {
   description = "Environment Variable used as a prefix"
   type = string
-  default = "dev"
+  default = "ins-it"
 }
 
 # Azure Resource Group Name 

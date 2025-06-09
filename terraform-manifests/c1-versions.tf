@@ -15,10 +15,10 @@ terraform {
       version = ">= 3.0"
     }    
   }
-# Terraform State Storage to Azure Storage Container (Values will be taken from Azure DevOps)
+/*# Terraform State Storage to Azure Storage Container (Values will be taken from Azure DevOps)
   backend "azurerm" {
     
-  }   
+  } */
 }
 
 # Provider Block
