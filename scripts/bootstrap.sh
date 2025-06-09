@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "Logging in to Azure using service principal..."
+#echo "AZURE_CLIENT_ID=$AZURE_CLIENT_ID"
+#echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"
+#echo "AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID"
+
+echo "🔐 Logging in to Azure using service principal..."
 az login --service-principal \
   --username "$AZURE_CLIENT_ID" \
   --password "$AZURE_CLIENT_SECRET" \
@@ -9,29 +13,41 @@ az login --service-principal \
 
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
-echo "Creating resource group if it doesn't exist..."
+echo "📦 Creating resource group if it doesn't exist..."
 az group create \
   --name "$BACKEND_RG" \
   --location "$LOCATION" \
   --output none
 
-echo "Creating storage account if it doesn't exist..."
-az storage account show --name "$BACKEND_STORAGE" --resource-group "$BACKEND_RG" >/dev/null 2>&1 || \
-az storage account create \
-  --name "$BACKEND_STORAGE" \
-  --resource-group "$BACKEND_RG" \
-  --location "$LOCATION" \
-  --sku Standard_LRS \
-  --encryption-services blob \
-  --output none
+echo "📡 Checking if storage account exists in your resource group..."
+if az storage account show --name "$BACKEND_STORAGE" --resource-group "$BACKEND_RG" >/dev/null 2>&1; then
+  echo "✅ Storage account '$BACKEND_STORAGE' exists in resource group '$BACKEND_RG'."
+else
+  echo "❌ Storage account '$BACKEND_STORAGE' doesn't exist. Attempting to create it..."
 
-echo "Getting storage account key..."
+  # Ensure name is globally unique by appending a short random suffix if not already unique
+  UNIQUE_NAME="${BACKEND_STORAGE}$(openssl rand -hex 2)"
+  echo "🔄 Storage account name '$BACKEND_STORAGE' is unavailable. Trying '$UNIQUE_NAME'..."
+  BACKEND_STORAGE="$UNIQUE_NAME"
+
+  az storage account create \
+    --name "$BACKEND_STORAGE" \
+    --resource-group "$BACKEND_RG" \
+    --location "$LOCATION" \
+    --sku Standard_LRS \
+    --encryption-services blob \
+    --output none
+
+  echo "✅ Storage account '$BACKEND_STORAGE' created."
+fi
+
+echo "🔑 Getting storage account key..."
 ACCOUNT_KEY=$(az storage account keys list \
   --resource-group "$BACKEND_RG" \
   --account-name "$BACKEND_STORAGE" \
   --query "[0].value" -o tsv)
 
-echo "Creating blob container if it doesn't exist..."
+echo "📁 Creating blob container if it doesn't exist..."
 az storage container create \
   --name "$CONTAINER_NAME" \
   --account-name "$BACKEND_STORAGE" \
@@ -39,6 +55,10 @@ az storage container create \
   --output none
 
 echo "✅ Backend storage is ready."
+
+# Export updated name for downstream steps
+echo "BACKEND_STORAGE=$BACKEND_STORAGE" >> $GITHUB_ENV
+
 
 
 #echo "Creating service principal..."
