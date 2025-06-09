@@ -7,6 +7,7 @@ on:
       - qa
       - prod
       - master
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -17,15 +18,6 @@ jobs:
   bootstrap-and-deploy:
     runs-on: ubuntu-latest
 
-    env:
-      TF_ENV: ${{ github.event.inputs.environment || (
-        github.ref == 'refs/heads/dev' && 'dev' ||
-        github.ref == 'refs/heads/qa' && 'qa' ||
-        github.ref == 'refs/heads/main' && 'prod' ||
-        github.ref == 'refs/heads/master' && 'prod' ||
-        'dev'
-      ) }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -35,43 +27,26 @@ jobs:
         with:
           terraform_version: 1.5.7
 
+      - name: Set TF_ENV variable
+        id: setenv
+        run: |
+          if [[ -n "${{ github.event.inputs.environment }}" ]]; then
+            echo "TF_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            echo "TF_ENV=dev" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "qa" ]]; then
+            echo "TF_ENV=qa" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "main" || "${GITHUB_REF##*/}" == "master" ]]; then
+            echo "TF_ENV=prod" >> $GITHUB_ENV
+          else
+            echo "TF_ENV=dev" >> $GITHUB_ENV
+          fi
+
       - name: Show selected environment
-        run: echo "Running for environment: $TF_ENV"
+        run: |
+          echo "Running for environment: $TF_ENV"
 
       - name: Load environment vars
         run: |
           echo "Loading env/${TF_ENV}.env"
-          cat env/${TF_ENV}.env >> $GITHUB_ENV
-
-      - name: Run Bootstrap Script
-        run: ./scripts/bootstrap.sh
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          BACKEND_RG: ${{ env.BACKEND_RG }}
-          BACKEND_STORAGE: ${{ env.BACKEND_STORAGE }}
-          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
-          LOCATION: ${{ env.LOCATION }}
-
-      - name: Terraform Init with Backend Config
-        run: |
-          terraform -chdir=terraform init \
-            -backend-config="resource_group_name=${BACKEND_RG}" \
-            -backend-config="storage_account_name=${BACKEND_STORAGE}" \
-            -backend-config="container_name=${CONTAINER_NAME}" \
-            -backend-config="key=${TF_ENV}.tfstate"
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Run Terraform Apply
-        run: terraform -chdir=terraform apply -var-file="${TF_ENV}.tfvars" -auto-approve
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          cat env/
