@@ -5,9 +5,10 @@ on:
     branches:
       - dev
       - qa
+      - staging
       - prod
       - master
-      - main
+     
   workflow_dispatch:
     inputs:
       environment:
@@ -36,7 +37,9 @@ jobs:
             echo "TF_ENV=dev" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF##*/}" == "qa" ]]; then
             echo "TF_ENV=qa" >> $GITHUB_ENV
-          elif [[ "${GITHUB_REF##*/}" == "main" || "${GITHUB_REF##*/}" == "master" ]]; then
+          elif [[ "${GITHUB_REF##*/}" == "staging" ]]; then
+            echo "TF_ENV=staging" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "master" ]]; then
             echo "TF_ENV=prod" >> $GITHUB_ENV
           else
             echo "TF_ENV=dev" >> $GITHUB_ENV
