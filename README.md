@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Terraform on Azure with Azure IaC DevOps for Terraform Project
 Gernerate the ssh keys under folder ssh-keys using command -
 ssh-keygen \
@@ -16,3 +17,7 @@ terraform providers lock -platform=windows_amd64 -platform=darwin_amd64 -platfor
 # Run the below command inorder to generate the resources specific a region e.g. dev region 
 terraform apply -var-file="dev.tfvars"
 
+=======
+# terraform-for-azure-iac-str-accts
+This repo demonstrates to create and destroy the storage account to hold the state file for various regions
+>>>>>>> cae32e362c98bcef543afa24b4d3db3daf58eefc
